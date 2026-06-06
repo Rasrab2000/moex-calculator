@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ПИФ-конструктор · MOEX</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root{--red:#E8001C;--navy:#0a1628;--blue:#1a56db;--green:#16a34a;--amber:#d97706;--purple:#7c3aed;--bg:#eef2f9;--sur:#fff;--sur2:#f7f9fc;--brd:#e2e8f2;--text:#0f172a;--muted:#64748b;--sh:0 2px 20px rgba(0,0,0,0.07);--r:14px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Golos Text',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:20px 16px 60px;}
+.app{max-width:1040px;margin:0 auto;}
+.hdr{display:flex;align-items:center;gap:14px;margin-bottom:24px;padding:16px 20px;background:var(--navy);border-radius:16px;box-shadow:0 4px 24px rgba(10,22,40,.3);}
+.hdr-logo{background:var(--red);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;padding:8px 14px;border-radius:9px;flex-shrink:0;}
+.hdr-text h1{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:#fff;line-height:1;}
+.hdr-text p{font-size:12px;color:rgba(255,255,255,.55);margin-top:3px;}
+.hdr-badge{margin-left:auto;display:flex;align-items:center;gap:6px;background:rgba(22,163,74,.15);border:1px solid rgba(22,163,74,.35);border-radius:20px;padding:5px 12px;flex-shrink:0;}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.hdr-badge span{font-size:11px;font-weight:600;color:#22c55e;}
+.tabs{display:flex;gap:5px;background:var(--sur);border:1px solid var(--brd);border-radius:var(--r);padding:5px;box-shadow:var(--sh);margin-bottom:18px;}
+.tab-btn{flex:1;padding:10px 16px;border:none;border-radius:10px;background:none;font-family:'Golos Text',sans-serif;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .15s;}
+.tab-btn.active{background:var(--red);color:#fff;}
+.layout{display:grid;grid-template-columns:420px 1fr;gap:16px;align-items:start;}
+@media(max-width:780px){.layout{grid-template-columns:1fr;}}
+.card{background:var(--sur);border:1px solid var(--brd);border-radius:var(--r);box-shadow:var(--sh);padding:20px;}
+.card+.card{margin-top:14px;}
+.clbl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:7px;}
+/* Search */
+.sw{position:relative;margin-bottom:6px;}
+.si{width:100%;padding:10px 13px 10px 36px;border:1.5px solid var(--brd);border-radius:11px;font-family:'Golos Text',sans-serif;font-size:13px;outline:none;background:var(--sur2);color:var(--text);transition:border-color .15s;}
+.si:focus{border-color:var(--blue);background:#fff;}
+.si-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px;pointer-events:none;}
+.shint{font-size:11px;color:var(--muted);margin-bottom:11px;}
+.dd{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1.5px solid var(--brd);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.12);z-index:500;max-height:240px;overflow-y:auto;}
+.dd-item{padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--brd);}
+.dd-item:last-child{border-bottom:none;}
+.dd-item:hover{background:#f0f4ff;}
+.dd-name{font-size:12px;font-weight:600;}
+.dd-meta{font-size:11px;color:var(--muted);margin-top:2px;font-family:monospace;}
+.dd-msg{padding:13px;text-align:center;color:var(--muted);font-size:12px;}
+/* Bond rows */
+.bond-list{display:flex;flex-direction:column;gap:9px;margin-bottom:12px;}
+.bond-row{background:var(--sur2);border:1px solid var(--brd);border-radius:12px;padding:12px 14px;}
+.br-top{display:flex;justify-content:space-between;gap:6px;}
+.br-nm{font-size:12px;font-weight:700;line-height:1.3;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.br-id{font-size:10px;color:var(--muted);font-family:monospace;margin-top:2px;}
+.br-warn{font-size:10px;color:#b45309;margin-top:3px;}
+.br-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;flex-shrink:0;line-height:1;padding:0;}
+.br-del:hover{color:var(--red);}
+.br-m{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:9px;}
+.bm-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px;}
+.bm-v{font-size:12px;font-weight:700;}
+.bm-v.ld{color:var(--muted);font-weight:400;animation:sh 1.5s infinite;}
+@keyframes sh{0%,100%{opacity:.4;}50%{opacity:1;}}
+.br-a{display:flex;align-items:center;gap:7px;margin-top:9px;padding-top:9px;border-top:1px solid var(--brd);}
+.br-a label{font-size:11px;color:var(--muted);white-space:nowrap;}
+.br-ai{flex:1;min-width:0;padding:6px 9px;border:1.5px solid var(--brd);border-radius:8px;font-family:'Golos Text',sans-serif;font-size:12px;font-weight:600;outline:none;background:#fff;}
+.br-ai:focus{border-color:var(--blue);}
+.br-w{background:var(--blue);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;}
+.port-tot{display:flex;justify-content:space-between;align-items:center;padding:9px 13px;background:#eff4ff;border-radius:9px;margin-top:2px;}
+.pt-l{font-size:11px;color:var(--muted);}
+.pt-v{font-size:14px;font-weight:800;color:var(--blue);}
+.pe{text-align:center;padding:24px 0;color:var(--muted);}
+.pe .pe-i{font-size:26px;margin-bottom:7px;}
+.pe p{font-size:12px;line-height:1.5;}
+/* Params */
+.pb{margin-top:14px;}
+.plbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;}
+.sel{width:100%;padding:9px 11px;border:1.5px solid var(--brd);border-radius:9px;font-family:'Golos Text',sans-serif;font-size:13px;outline:none;background:#fff;cursor:pointer;margin-top:3px;}
+.sr{display:flex;align-items:center;gap:9px;margin-top:4px;}
+.sr input[type=range]{flex:1;accent-color:var(--blue);}
+.sv{font-size:12px;font-weight:700;min-width:52px;text-align:right;}
+/* Toggle buttons */
+.tbts{display:grid;gap:4px;margin-top:4px;}
+.tbts-2{grid-template-columns:1fr 1fr;}
+.tbts-3{grid-template-columns:1fr 1fr 1fr;}
+.tbt{padding:8px 6px;border:1.5px solid var(--brd);border-radius:9px;background:#fff;font-family:'Golos Text',sans-serif;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;text-align:center;line-height:1.4;}
+.tbt.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+.iis-note{background:#eff6ff;border:1px solid #bfdbfe;border-radius:9px;padding:9px 12px;font-size:11px;color:#1e40af;margin-top:8px;line-height:1.6;}
+.note-sm{font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5;}
+/* Calc button */
+.calc-btn{width:100%;padding:12px;background:var(--red);color:#fff;border:none;border-radius:12px;font-family:'Golos Text',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:13px;transition:background .15s;}
+.calc-btn:hover{background:#c5001a;}
+/* Results */
+.re{text-align:center;padding:38px 0;color:var(--muted);}
+.re .ri{font-size:32px;margin-bottom:9px;}
+.re p{font-size:13px;line-height:1.6;}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.cb{border-radius:12px;padding:15px;text-align:center;}
+.cb-b{background:#eff4ff;border:1px solid #bfdbfe;}
+.cb-p{background:#f0fdf4;border:1px solid #86efac;}
+.cb-i{background:#faf5ff;border:1px solid #d8b4fe;}
+.cb-l{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:5px;}
+.cb-y{font-family:'Bebas Neue',sans-serif;font-size:44px;line-height:1;}
+.cb-y.bonds{color:var(--blue);}
+.cb-y.pif{color:var(--green);}
+.cb-y.iis{color:var(--purple);}
+.cb-s{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.4;}
+.cb-f{font-size:12px;font-weight:700;margin-top:5px;}
+.iib{margin-bottom:12px;}
+.iib .cb-i{display:flex;align-items:center;gap:14px;text-align:left;padding:12px 16px;}
+.iib .cb-y{font-size:36px;}
+.iib .ii{flex:1;}
+.vd{padding:11px 15px;border-radius:10px;font-size:13px;font-weight:500;margin-bottom:12px;line-height:1.5;}
+.vd-p{background:#f0fdf4;border:1px solid #86efac;color:#14532d;}
+.vd-b{background:#fff1f2;border:1px solid #fecdd3;color:#881337;}
+.vd-e{background:#f8fafc;border:1px solid var(--brd);color:var(--muted);}
+.vd-i{background:#faf5ff;border:1px solid #d8b4fe;color:#5b21b6;font-weight:600;}
+.bkd{background:#eff6ff;border:1px solid #bfdbfe;border-radius:9px;padding:10px 13px;font-size:11px;color:#1e40af;margin-bottom:13px;line-height:1.8;}
+canvas{max-height:240px;}
+/* PIF recommendation */
+.pif-rec{background:var(--sur2);border:1.5px solid #86efac;border-radius:11px;padding:12px 14px;margin-bottom:13px;}
+.pif-rec.loading{border-color:var(--brd);background:var(--sur2);}
+.pr-head{font-size:13px;font-weight:700;color:var(--green);margin-bottom:4px;}
+.pr-meta{font-size:11px;color:var(--muted);line-height:1.6;}
+.pr-why{font-size:11px;color:#1e40af;margin-top:6px;font-weight:500;}
+.pr-top{margin-top:10px;border-top:1px solid var(--brd);padding-top:9px;}
+.pr-top-lbl{font-size:10px;color:var(--muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;}
+.pt-item{display:flex;justify-content:space-between;align-items:center;padding:5px 9px;border-radius:8px;margin-bottom:4px;font-size:11px;border:1px solid var(--brd);}
+.pt-item.best{background:#f0fdf4;border-color:#86efac;}
+.pt-nm{font-weight:600;}
+.pt-y{font-weight:700;color:var(--green);}
+/* Tax info */
+.ti{font-size:11px;color:var(--muted);line-height:1.85;}
+.footnote{font-size:10px;color:var(--muted);text-align:center;margin-top:14px;line-height:1.7;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hdr">
+    <div class="hdr-logo">MOEX</div>
+    <div class="hdr-text">
+      <h1>ПИФ-КОНСТРУКТОР</h1>
+      <p>Сравнение облигационного портфеля и ПИФа · Кейс-чемпионат ПУЛЬС</p>
+    </div>
+    <div class="hdr-badge"><span class="live-dot"></span><span>LIVE DATA</span></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="phys">👤 Физическое лицо</button>
+    <button class="tab-btn" data-tab="legal">🏢 Юрлицо / НПФ</button>
+  </div>
+
+  <div class="layout">
+    <!-- LEFT -->
+    <div>
+      <div class="card">
+        <div class="clbl"><span class="live-dot"></span>Портфель облигаций · поиск MOEX</div>
+        <div class="sw" id="sw">
+          <span class="si-icon">🔍</span>
+          <input class="si" id="si" type="text" autocomplete="off" placeholder="ISIN (RU000A...) или название (ОФЗ 26240, Сбер...)">
+          <div class="dd" id="dd" style="display:none"></div>
+        </div>
+        <div class="shint">Поиск по ISIN и по названию — как в приложении брокера</div>
+        <div class="bond-list" id="bondList">
+          <div class="pe"><div class="pe-i">🔍</div><p>Найдите и добавьте облигации<br>через строку поиска выше</p></div>
+        </div>
+        <div class="port-tot" id="portTot" style="display:none">
+          <span class="pt-l">Итого инвестировано</span>
+          <span class="pt-v" id="totAmt">0 ₽</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="clbl">Параметры расчёта</div>
+
+        <div id="physP">
+          <div class="pb">
+            <div class="plbl">Ставка НДФЛ на инвест. доход</div>
+            <div class="tbts tbts-2">
+              <button class="tbt rate-btn active" data-rate="0.13">13%<br><small style="font-weight:400">до 2,4 млн ₽</small></button>
+              <button class="tbt rate-btn" data-rate="0.15">15%<br><small style="font-weight:400">свыше 2,4 млн ₽</small></button>
+            </div>
+            <div class="note-sm">Инвест. доход облагается отдельно от трудового — ст. 214.1 НК РФ</div>
+          </div>
+          <div class="pb">
+            <div class="plbl">Режим инвестирования</div>
+            <div class="tbts tbts-3">
+              <button class="tbt mode-btn active" data-mode="no">🏦 Брокер<br><small style="font-weight:400">купоны выводятся</small></button>
+              <button class="tbt mode-btn" data-mode="yes">🏦 Брокер<br><small style="font-weight:400">купоны реинвест.</small></button>
+              <button class="tbt mode-btn" data-mode="iis3">💼 ИИС-3<br><small style="font-weight:400">мин. 6 лет</small></button>
+            </div>
+            <div id="iisNote" class="iis-note" style="display:none">
+              <b>ИИС-3 (с 2026): мин. 6 лет.</b> Весь инвест. доход до <b>30 млн ₽ — 0% НДФЛ</b>. Купоны реинвестируются без потерь. Досрочное закрытие — льготы аннулируются. <i>Ст. 219.2 НК РФ</i>
+            </div>
+          </div>
+        </div>
+
+        <div id="legalP" style="display:none">
+          <div class="pb">
+            <div class="plbl">Тип организации</div>
+            <select class="sel" id="legalType">
+              <option value="ooo">ООО — купоны 20%, прирост 25%</option>
+              <option value="npf">НПФ — купоны 20%, прирост 20%</option>
+              <option value="ins">Страховая — купоны 20%, прирост 25%</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="pb">
+          <div class="plbl">Горизонт инвестирования</div>
+          <div class="sr">
+            <input type="range" id="years" min="1" max="10" step="0.5" value="5">
+            <span class="sv" id="yearsVal">5.0 лет</span>
+          </div>
+        </div>
+
+        <button class="calc-btn" id="calcBtn">⚡ Рассчитать и сравнить</button>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div>
+      <div class="card">
+        <div class="clbl">Результаты сравнения</div>
+        <div id="resEmpty" class="re"><div class="ri">📊</div><p>Добавьте облигации в портфель,<br>выберите параметры<br>и нажмите «Рассчитать»</p></div>
+        <div id="resContent" style="display:none">
+          <!-- PIF recommendation -->
+          <div class="pif-rec" id="pifRec">
+            <div class="pr-head" id="prName">Подбираем ПИФ...</div>
+            <div class="pr-meta" id="prMeta"></div>
+            <div class="pr-why" id="prWhy"></div>
+            <div class="pr-top" id="prTop" style="display:none">
+              <div class="pr-top-lbl">Топ-3 по доходности после налогов:</div>
+              <div id="prTopList"></div>
+            </div>
+          </div>
+          <!-- Comparison -->
+          <div class="cgrid">
+            <div class="cb cb-b">
+              <div class="cb-l">📉 Портфель облигаций</div>
+              <div class="cb-y bonds" id="bY">—</div>
+              <div class="cb-s" id="bS"></div>
+              <div class="cb-f" id="bF"></div>
+            </div>
+            <div class="cb cb-p">
+              <div class="cb-l">🏆 ПИФ</div>
+              <div class="cb-y pif" id="pY">—</div>
+              <div class="cb-s" id="pS"></div>
+              <div class="cb-f" id="pF"></div>
+            </div>
+          </div>
+          <div class="iib" id="iisBox" style="display:none">
+            <div class="cb cb-i">
+              <div><div class="cb-l">💼 ИИС-3</div><div class="cb-y iis" id="iY">—</div></div>
+              <div class="ii"><div class="cb-s">0% НДФЛ до 30 млн · ст.219.2 НК РФ</div><div class="cb-f" id="iF"></div></div>
+            </div>
+          </div>
+          <div class="vd" id="vd"></div>
+          <div class="bkd" id="bkd"></div>
+          <canvas id="chart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="clbl">Налоговая справка</div>
+        <div class="ti" id="taxInfo"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    Данные о бумагах — <b>MOEX ISS API</b> в реальном времени (купон, цена, YTM, дюрация)<br>
+    Доходности ПИФов — расчёт по историческим ценам паёв с MOEX TQIF за 12 мес. (с fallback на данные УК за май 2026)<br>
+    YTM_simp рассчитывается по методологии проекта без реинвестирования купонов
+  </div>
+</div>
+
+<script>
+// ── PIF data (fallback if MOEX fetch fails) ────────────────────────────────
+const PIF_FALLBACK = {
+  OBLG:{name:'ВИМ Российские облигации',   ter:0.71, nav:14.8, type:'mixed'},
+  SBGB:{name:'Первая Гос. облигации',       ter:0.49, nav:13.2, type:'ofz'},
+  SBRB:{name:'Первая Корп. облигации',      ter:0.60, nav:15.1, type:'corp'},
+  TOFZ:{name:'Т-Капитал ОФЗ',              ter:1.59, nav:12.9, type:'ofz'},
+  AMGB:{name:'АТОН Длинные ОФЗ',           ter:0.40, nav:13.5, type:'ofz'},
+  AKMB:{name:'Альфа Управляемые',          ter:1.50, nav:15.4, type:'corp'},
+  BOND:{name:'ДОХОДЪ Корп. облигации',     ter:0.99, nav:15.8, type:'corp'},
+  PSRB:{name:'ПСБ Рублёвые облигации',     ter:0.80, nav:14.5, type:'mixed'},
+};
+// Live NAV cache
+let pifLiveData = null;
+
+// ── State ──────────────────────────────────────────────────────────────────
+let TAB = 'phys', MODE = 'no', PORT = [], CHART = null, SR_T = null, TAX = 0.13;
+const MOEX = 'https://iss.moex.com/iss';
+
+// ── Fetch live PIF returns from MOEX TQIF candles ─────────────────────────
+async function fetchPIFReturns() {
+  if (pifLiveData) return pifLiveData;
+  const today = new Date(), yr = new Date(today);
+  yr.setFullYear(today.getFullYear() - 1);
+  const fmt = d => d.toISOString().slice(0,10);
+  const tickers = Object.keys(PIF_FALLBACK);
+
+  const results = {};
+  await Promise.all(tickers.map(async (ticker) => {
+    try {
+      const url = MOEX + '/engines/stock/markets/shares/boards/TQIF/securities/' + ticker
+        + '/candles.json?from=' + fmt(yr) + '&till=' + fmt(today) + '&interval=24&iss.meta=off';
+      const d = await (await fetch(url)).json();
+      const candles = d.candles?.data || [], cols = d.candles?.columns || [];
+      const ci = cols.indexOf('close');
+      if (candles.length >= 10) {
+        const ret = (candles[candles.length-1][ci] / candles[0][ci] - 1) * 100;
+        results[ticker] = { nav: parseFloat(ret.toFixed(2)), live: true };
+      }
+    } catch(e) {}
+    if (!results[ticker]) results[ticker] = { nav: PIF_FALLBACK[ticker].nav, live: false };
+  }));
+
+  // Merge with fallback
+  const merged = {};
+  tickers.forEach(t => {
+    merged[t] = Object.assign({}, PIF_FALLBACK[t], results[t]);
+  });
+  pifLiveData = merged;
+  return merged;
+}
+
+// ── PIF strategy matching ──────────────────────────────────────────────────
+// Matches the best PIF to portfolio composition (OFZ vs corporate ratio)
+function rankPIFs(pifData, ofzWeight, amt, years, isPhys, legalType) {
+  const tax = isPhys ? TAX : 0;
+  const gainTax = isPhys ? TAX : (legalType === 'npf' ? 0.20 : 0.25);
+  const pifExit = !isPhys && years > 3 ? 0 : gainTax;
+
+  return Object.entries(pifData).map(([key, pif]) => {
+    const pifR = pif.nav / 100;
+    let pFin;
+    if (isPhys) {
+      const gross = amt * Math.pow(1 + pifR, years), prof = gross - amt;
+      const ldv = years >= 3 ? Math.min(prof, Math.floor(years) * 3e6) : 0;
+      pFin = gross - Math.max(0, prof - ldv) * tax;
+    } else {
+      const gross = amt * Math.pow(1 + pifR, years);
+      pFin = gross - (gross - amt) * pifExit;
+    }
+    const cagr = (Math.pow(pFin / amt, 1/years) - 1) * 100;
+
+    // Strategy score: bonus for matching portfolio composition
+    let strategyScore = 0;
+    if (ofzWeight >= 0.6 && pif.type === 'ofz') strategyScore = 2;
+    else if (ofzWeight <= 0.4 && pif.type === 'corp') strategyScore = 2;
+    else if (ofzWeight > 0.4 && ofzWeight < 0.6 && pif.type === 'mixed') strategyScore = 2;
+    else if (pif.type === 'mixed') strategyScore = 1;
+
+    return { key, pif, cagr, pFin, pifR, strategyScore };
+  }).sort((a, b) => {
+    // Primary: strategy match; Secondary: after-tax return
+    if (b.strategyScore !== a.strategyScore) return b.strategyScore - a.strategyScore;
+    return b.cagr - a.cagr;
+  });
+}
+
+// ── MOEX bond search ───────────────────────────────────────────────────────
+async function searchBonds(q) {
+  const url = MOEX + '/securities.json?q=' + encodeURIComponent(q.trim())
+    + '&group_by=group&group_by_filter=stock_bonds&limit=20&iss.meta=off';
+  try {
+    const d = await (await fetch(url)).json();
+    const rows = d.securities?.data || [], cols = d.securities?.columns || [];
+    const iI = cols.indexOf('isin'), nI = cols.indexOf('name'),
+          sI = cols.indexOf('secid'), tI = cols.indexOf('group');
+    return rows.slice(0,12).map(r => ({
+      isin: r[iI]||r[sI]||'', secid: r[sI]||r[iI]||'', name: r[nI]||'', type: r[tI]||''
+    })).filter(x => x.secid);
+  } catch(e) { return []; }
+}
+
+async function fetchBond(secid) {
+  for (const board of ['TQOB','TQCB','TQOD','TQNB']) {
+    try {
+      const url = MOEX + '/engines/stock/markets/bonds/boards/' + board
+        + '/securities/' + secid + '.json?iss.meta=off&iss.only=securities,marketdata';
+      const d = await (await fetch(url)).json();
+      const res = parseBond(d, secid, board);
+      if (res) return res;
+    } catch(e) { continue; }
+  }
+  return null;
+}
+
+function parseBond(d, secid, board) {
+  const md = d.marketdata?.data?.[0], sd = d.securities?.data?.[0];
+  if (!md||!sd) return null;
+  const mc = d.marketdata?.columns||[], sc = d.securities?.columns||[];
+  const g = (c,r,k) => { const i=c.indexOf(k); return i>=0?r[i]:null; };
+  const price = g(mc,md,'LAST')??g(mc,md,'MARKETPRICE')??g(mc,md,'WAPRICE')??g(mc,md,'PREVPRICE');
+  if (!price) return null;
+  const coupon=g(sc,sd,'COUPONPERCENT'), nkd=g(sc,sd,'ACCRUEDINT')??0,
+        matDate=g(sc,sd,'MATDATE'), offerDate=g(sc,sd,'OFFERDATE'),
+        nominal=g(sc,sd,'FACEVALUE')??1000, duration=g(mc,md,'DURATION'),
+        ytmEx=g(mc,md,'YIELD'), secName=g(sc,sd,'SECNAME')||g(sc,sd,'NAME')||secid;
+  const isOFZ = board==='TQOB'||(secName||'').toUpperCase().includes('ОФЗ')||secid.startsWith('SU');
+  const effDate = (offerDate&&offerDate!=='0000-00-00')?offerDate:matDate;
+  let yearsToMat=null, ytmSimp=null, couponYield=null;
+  if (effDate&&effDate!=='0000-00-00') {
+    const T = Math.max(0.01,(new Date(effDate)-new Date())/(365.25*864e5));
+    yearsToMat = T;
+    if (coupon&&price) {
+      const dirty = price + nkd/nominal*100;
+      ytmSimp = ((coupon+(100-dirty)/T)/dirty)*100;
+      couponYield = coupon/dirty*100;
+    }
+  }
+  return { secid, name:secName, board, price, coupon:coupon??null, nkd,
+           duration:duration??null, ytm:ytmEx??null, ytmSimp, couponYield,
+           nominal, matDate, offerDate, isOFZ, yearsToMat, loaded:true };
+}
+
+// ── Portfolio ──────────────────────────────────────────────────────────────
+function addBond(isin, secid, name) {
+  if (PORT.find(b => b.secid===secid)) return;
+  const e = { isin, secid, name, price:null, coupon:null, nkd:0, duration:null,
+               ytm:null, ytmSimp:null, couponYield:null, yearsToMat:null,
+               isOFZ:false, nominal:1000, amount:100000, loaded:false };
+  PORT.push(e); renderPort(); updTot();
+  fetchBond(secid).then(data => { if(data) Object.assign(e,data); else e.loaded=true; renderPort(); });
+}
+function rmBond(secid) {
+  PORT = PORT.filter(b => b.secid!==secid); renderPort(); updTot();
+  if (!PORT.length) { el('resContent').style.display='none'; el('resEmpty').style.display='block'; }
+}
+function updAmt(secid, raw) {
+  const b = PORT.find(x => x.secid===secid);
+  if (b) b.amount = parseFloat(raw.replace(/\s/g,''))||0;
+  updTot(); renderWts();
+}
+function getTotal() { return PORT.reduce((s,b) => s+(b.amount||0), 0); }
+function getW(b) { const t=getTotal(); return t>0?b.amount/t:0; }
+function updTot() {
+  const t = getTotal();
+  el('portTot').style.display = PORT.length?'flex':'none';
+  el('totAmt').textContent = fR(t);
+}
+function renderWts() {
+  PORT.forEach(b => { const e=document.getElementById('w-'+b.secid); if(e) e.textContent=(getW(b)*100).toFixed(1)+'%'; });
+}
+function renderPort() {
+  const list = el('bondList');
+  if (!PORT.length) {
+    list.innerHTML = '<div class="pe"><div class="pe-i">🔍</div><p>Найдите и добавьте облигации<br>через строку поиска выше</p></div>';
+    return;
+  }
+  list.innerHTML = '';
+  PORT.forEach(b => {
+    const div = document.createElement('div'); div.className='bond-row';
+    const nd = b.loaded?'н/д':'⏳', sp = b.loaded?'':'ld';
+    const ytmV = b.ytmSimp!=null ? b.ytmSimp.toFixed(2)+'%' : (b.ytm!=null ? b.ytm.toFixed(2)+'%' : nd);
+    const ldvW = b.yearsToMat!=null&&b.yearsToMat<3
+      ? '<div class="br-warn">⚠ Погашение через '+b.yearsToMat.toFixed(1)+' лет — ЛДВ не применяется</div>' : '';
+    div.innerHTML =
+      '<div class="br-top"><div style="flex:1;min-width:0">'
+        +'<div class="br-nm" title="'+b.name+'">'+b.name+'</div>'
+        +'<div class="br-id">'+(b.isin||b.secid)+' · '+(b.isOFZ?'ОФЗ':'Корпоративная')+'</div>'+ldvW
+      +'</div><button class="br-del" data-secid="'+b.secid+'">✕</button></div>'
+      +'<div class="br-m">'
+        +'<div class="bm-l">Купон</div>'    +'<div class="bm-v '+sp+'">'+(b.coupon!=null?b.coupon.toFixed(2)+'%':nd)+'</div>'
+        +'<div class="bm-l">Цена</div>'     +'<div class="bm-v '+sp+'">'+(b.price!=null?b.price.toFixed(2)+'%':nd)+'</div>'
+        +'<div class="bm-l">YTM</div>'      +'<div class="bm-v '+sp+'">'+ytmV+'</div>'
+        +'<div class="bm-l">Дюрация</div>'  +'<div class="bm-v '+sp+'">'+(b.duration!=null?Math.round(b.duration)+' д.':nd)+'</div>'
+      +'</div>'
+      +'<div class="br-a"><label>Сумма ₽</label>'
+        +'<input class="br-ai" type="text" inputmode="numeric" data-secid="'+b.secid+'" value="'+fN(b.amount)+'" placeholder="100 000">'
+        +'<span class="br-w" id="w-'+b.secid+'">'+(getW(b)*100).toFixed(1)+'%</span>'
+      +'</div>';
+    list.appendChild(div);
+  });
+  list.querySelectorAll('.br-del').forEach(btn => btn.addEventListener('click', () => rmBond(btn.dataset.secid)));
+  list.querySelectorAll('.br-ai').forEach(inp => inp.addEventListener('input', () => {
+    const raw = inp.value.replace(/\s/g,''); inp.value = fN(parseFloat(raw)||0);
+    updAmt(inp.dataset.secid, raw); renderWts();
+  }));
+}
+
+// ── Search UI ──────────────────────────────────────────────────────────────
+const si = el('si'), dd = el('dd');
+si.addEventListener('input', () => {
+  clearTimeout(SR_T); const q = si.value.trim();
+  if (q.length<2) { dd.style.display='none'; return; }
+  dd.style.display='block'; dd.innerHTML='<div class="dd-msg">🔍 Ищем на Московской бирже...</div>';
+  SR_T = setTimeout(() => doSearch(q), 380);
+});
+si.addEventListener('keydown', e => { if(e.key==='Escape') dd.style.display='none'; });
+document.addEventListener('click', e => { if(!el('sw').contains(e.target)) dd.style.display='none'; });
+
+async function doSearch(q) {
+  const res = await searchBonds(q);
+  if (!res.length) { dd.innerHTML='<div class="dd-msg">Ничего не найдено. Попробуйте ISIN или другое название.</div>'; return; }
+  dd.innerHTML = res.map(r =>
+    '<div class="dd-item" data-isin="'+r.isin+'" data-secid="'+r.secid+'" data-name="'+r.name+'">'
+    +'<div class="dd-name">'+r.name+'</div>'
+    +'<div class="dd-meta">'+r.isin+' · '+r.secid+'</div></div>'
+  ).join('');
+  dd.querySelectorAll('.dd-item').forEach(item => item.addEventListener('click', () => {
+    addBond(item.dataset.isin, item.dataset.secid, item.dataset.name);
+    si.value=''; dd.style.display='none';
+  }));
+}
+
+// ── Portfolio metrics ──────────────────────────────────────────────────────
+function getMetrics() {
+  const total = getTotal();
+  if (!total||!PORT.length) return null;
+  let wtdSimp=0, wtdClass=0, wtdCpn=0, validS=0, validC=0, ldvQual=0, ofzW=0;
+  PORT.forEach(b => {
+    const w = b.amount/total;
+    const simp = b.ytmSimp??b.ytm, cls = b.ytm??b.ytmSimp;
+    if (simp!=null) { wtdSimp+=simp*w; validS++; }
+    if (cls!=null)  { wtdClass+=cls*w; validC++; }
+    if (b.couponYield!=null) wtdCpn+=b.couponYield*w;
+    else if (b.coupon!=null) wtdCpn+=b.coupon*w;
+    if (b.yearsToMat==null||b.yearsToMat>=3) ldvQual+=w;
+    if (b.isOFZ) ofzW+=w;
+  });
+  return { wtdSimp, wtdClass, wtdCpn, wtdDisc:wtdSimp-wtdCpn,
+           valid:Math.max(validS,validC), ldvQual, ofzWeight:ofzW, total };
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function pifVal(amt,pifR,tax,t) {
+  const gross=amt*Math.pow(1+pifR,t), prof=gross-amt;
+  const ldv=t>=3?Math.min(prof,Math.floor(t)*3e6):0;
+  return gross-Math.max(0,prof-ldv)*tax;
+}
+function breakEven(amt,netR,pifR,tax) {
+  for(let t=0.5;t<=15;t+=0.5) if(pifVal(amt,pifR,tax,t)>amt*Math.pow(1+netR,t)) return t;
+  return null;
+}
+
+// ── MAIN CALCULATE ─────────────────────────────────────────────────────────
+async function calculate() {
+  const m = getMetrics();
+  if (!m||m.valid===0) { alert('Добавьте облигации и дождитесь загрузки данных с MOEX.'); return; }
+
+  const years = parseFloat(el('years').value);
+  const amt = m.total;
+  const isPhys = TAB==='phys';
+  const lType = isPhys?'':el('legalType').value;
+  const simpR = m.wtdSimp/100, clsR = m.wtdClass/100;
+  const cpnR = m.wtdCpn/100, discR = m.wtdDisc/100;
+
+  // Show loading state
+  el('resEmpty').style.display='none';
+  el('resContent').style.display='block';
+  el('pifRec').classList.add('loading');
+  el('prName').textContent='Подбираем ПИФ (загружаем данные с MOEX)...';
+  el('prMeta').textContent='';
+
+  // Fetch live PIF returns from MOEX TQIF
+  let pifData;
+  try { pifData = await fetchPIFReturns(); }
+  catch(e) { pifData = Object.fromEntries(Object.entries(PIF_FALLBACK).map(([k,v]) => [k,Object.assign({},v,{live:false})])); }
+
+  // Rank PIFs by strategy match + after-tax return
+  const ranked = rankPIFs(pifData, m.ofzWeight, amt, years, isPhys, lType);
+  const best = ranked[0];
+  const pif = best.pif, pifR = best.pifR;
+
+  let bFin, pFin, bCAGR, pCAGR, iFin=null, iCAGR=null, bDesc, pDesc, taxHtml;
+
+  if (isPhys) {
+    const tax = TAX;
+    const noNetR = simpR*(1-tax), yesNetR = clsR*(1-tax);
+
+    if (MODE==='no')       { bFin=amt*Math.pow(1+noNetR,years);  bDesc='YTM_simp × (1−'+(tax*100).toFixed(0)+'%) = '+(noNetR*100).toFixed(2)+'%/год'; }
+    else if (MODE==='yes') { bFin=amt*Math.pow(1+yesNetR,years); bDesc='YTM × (1−'+(tax*100).toFixed(0)+'%) = '+(yesNetR*100).toFixed(2)+'%/год · купоны реинвест.'; }
+    else                   { bFin=amt*Math.pow(1+noNetR,years);  bDesc='YTM_simp × (1−'+(tax*100).toFixed(0)+'%) = '+(noNetR*100).toFixed(2)+'%/год (база)'; }
+    bCAGR = (Math.pow(bFin/amt,1/years)-1)*100;
+
+    const pifGross=amt*Math.pow(1+pifR,years), pifProf=pifGross-amt;
+    const ldvP=years>=3?Math.min(pifProf,Math.floor(years)*3e6):0;
+    pFin=pifGross-Math.max(0,pifProf-ldvP)*tax;
+    pCAGR=(Math.pow(pFin/amt,1/years)-1)*100;
+    pDesc=years>=3
+      ?'NAV +'+(pif.nav)+'%/год · ЛДВ на прирост пая (−'+fRS(ldvP)+') · НДФЛ '+(tax*100).toFixed(0)+'%'
+      :'NAV +'+(pif.nav)+'%/год · НДФЛ '+(tax*100).toFixed(0)+'% (ЛДВ: срок <3 лет)';
+
+    if (MODE==='iis3') {
+      const effY=Math.max(years,6), gross=amt*Math.pow(1+clsR,effY), prof=gross-amt;
+      const tx=prof>3e7?(prof-3e7)*tax:0;
+      iFin=gross-tx; iCAGR=(Math.pow(iFin/amt,1/effY)-1)*100;
+    }
+
+    const beT = breakEven(amt, noNetR, pifR, tax);
+    const ldvNote = m.ldvQual<0.99
+      ? '⚠️ '+((1-m.ldvQual)*100).toFixed(0)+'% портфеля гасится раньше 3 лет — ЛДВ на эту долю не применяется'
+      : '✅ Все бумаги с погашением ≥3 лет — ЛДВ применяется';
+    taxHtml = '<b>Физлицо · горизонт '+years+' лет:</b><br>'
+      +'📌 НДФЛ <b>'+(tax*100).toFixed(0)+'%</b> на инвест. доход (отдельная база от трудового) — ст.214.1 НК РФ<br>'
+      +'📌 ЛДВ — <b>только на прирост цены</b> бумаги/пая, не на купоны — ст.219.1 НК РФ<br>'
+      +'📌 ПИФ: купоны реинвестируются <b>100% без НДФЛ</b> → НДФЛ при продаже пая<br>'
+      +'📌 NAV '+pif.nav+'% — '+(pif.live?'расчёт по историческим ценам MOEX TQIF за 12 мес.':'данные УК за май 2026 (fallback)')+'; TER уже учтён<br>'
+      +'📌 '+ldvNote;
+
+    // PIF recommendation block
+    el('pifRec').classList.remove('loading');
+    const stratName = m.ofzWeight>=0.6?'ОФЗ-ориентированная стратегия':m.ofzWeight<=0.4?'корпоративная стратегия':'сбалансированная стратегия';
+    el('prName').textContent = best.key+' — '+pif.name;
+    el('prMeta').textContent = 'NAV +'+(pif.nav)+'% за 12 мес.'+(pif.live?' (MOEX TQIF)'||' (данные УК, fallback)')+' · TER '+pif.ter+'% · доходность после налогов: '+best.cagr.toFixed(2)+'%/год';
+    el('prWhy').textContent = '📈 Подобран под вашу '+stratName+(beT?' · ПИФ выгоднее облигаций примерно с '+beT+' лет':'');
+
+    el('prTop').style.display = 'block';
+    const medals = ['🥇','🥈','🥉'];
+    el('prTopList').innerHTML = ranked.slice(0,3).map((r,i) =>
+      '<div class="pt-item '+(i===0?'best':'')+'">'
+      +'<span class="pt-nm">'+medals[i]+' '+r.key+' · '+r.pif.name+'</span>'
+      +'<span class="pt-y">'+r.cagr.toFixed(2)+'%</span></div>'
+    ).join('');
+
+    el('bY').textContent=bCAGR.toFixed(2)+'%'; el('pY').textContent=pCAGR.toFixed(2)+'%';
+    el('bF').textContent='≈ '+fR(bFin)+' за '+years+' лет'; el('pF').textContent='≈ '+fR(pFin)+' за '+years+' лет';
+    el('bS').textContent=bDesc; el('pS').textContent=pDesc;
+    el('bkd').innerHTML=taxHtml;
+    const iBox=el('iisBox');
+    if(iFin!=null){iBox.style.display='block';el('iY').textContent=iCAGR.toFixed(2)+'%';el('iF').textContent='≈ '+fR(iFin)+' за '+Math.max(years,6)+' лет';}
+    else iBox.style.display='none';
+
+    const vEl=el('vd');
+    const brkS=beT?' · <b>ПИФ выгоднее с '+beT+' лет</b>':'';
+    const cands=[{val:bFin,n:'bond'},{val:pFin,n:'pif'}];
+    if(iFin!=null)cands.push({val:iFin,n:'iis'});
+    const best2=cands.reduce((a,b)=>b.val>a.val?b:a);
+    if(best2.n==='iis'){vEl.className='vd vd-i';vEl.innerHTML='💼 <b>ИИС-3 выгоднее</b>: обгоняет облигации на <b>'+fR(iFin-bFin)+'</b> и ПИФ на <b>'+fR(iFin-pFin)+'</b> за '+Math.max(years,6)+' лет';}
+    else if(best2.n==='pif'){vEl.className='vd vd-p';vEl.innerHTML='✅ <b>ПИФ выгоднее</b> на <b>'+fR(pFin-bFin)+'</b> (+'+((pFin/bFin-1)*100).toFixed(1)+'%) за '+years+' лет'+brkS;}
+    else{const dv=bFin-pFin;vEl.className=dv<amt*0.01?'vd vd-e':'vd vd-b';vEl.innerHTML=dv<amt*0.01?'⚖️ Результаты практически одинаковы (разница <1%).':'📊 <b>Портфель облигаций выгоднее</b> на <b>'+fR(dv)+'</b> за '+years+' лет';}
+
+    renderChart(amt,simpR,clsR,cpnR,discR,pifR,years,pif,iFin,tax);
+
+  } else {
+    const lt=el('legalType').value;
+    const cpnTax=0.20, gainTax=lt==='npf'?0.20:0.25, pifExit=years>3?0:gainTax;
+    const netR=cpnR*(1-cpnTax)+Math.max(0,discR)*(1-gainTax);
+    bFin=amt*Math.pow(1+netR,years); bCAGR=(Math.pow(Math.max(bFin,1)/amt,1/years)-1)*100;
+    bDesc='купоны −'+(cpnTax*100).toFixed(0)+'% + прирост −'+(gainTax*100).toFixed(0)+'%';
+    const pifGross=amt*Math.pow(1+pifR,years);
+    pFin=pifGross-(pifGross-amt)*pifExit; pCAGR=(Math.pow(pFin/amt,1/years)-1)*100;
+    pDesc=pifExit===0?'NAV '+(pif.nav)+'%/год · налог 0% (>3 лет) · пп.1,5 ст.276 НК РФ':'NAV '+(pif.nav)+'%/год · налог '+(pifExit*100).toFixed(0)+'% при погашении';
+    const lN={ooo:'ООО',npf:'НПФ',ins:'Страховая'};
+    taxHtml='<b>'+lN[lt]+' · горизонт '+years+' лет:</b><br>'
+      +'📌 Купоны (ОФЗ + корп.) с 2025: <b>20%</b> — пп.1 п.4 ст.284 НК РФ; ФЗ №362-ФЗ от 29.10.2024<br>'
+      +'📌 Прирост цены / дисконт: <b>'+(gainTax*100).toFixed(0)+'%</b> — п.1 ст.284 НК РФ<br>'
+      +'📌 ПИФ: купоны реинвестируются без налога внутри — пп.1,5 ст.276 НК РФ<br>'
+      +'📌 Налог при погашении пая: <b>'+(pifExit===0?'0% (>3 лет)':gainTax*100+'%')+'</b><br>'
+      +'📌 УК не является налоговым агентом — платите самостоятельно · ст.214.1 НК РФ';
+
+    el('pifRec').classList.remove('loading');
+    el('prName').textContent=best.key+' — '+pif.name;
+    el('prMeta').textContent='NAV +'+(pif.nav)+'% за 12 мес. · TER '+pif.ter+'% · доходность после налогов: '+best.cagr.toFixed(2)+'%/год';
+    el('prWhy').textContent='📈 Оптимальный выбор для '+lN[lt];
+    el('prTop').style.display='block';
+    const medals=['🥇','🥈','🥉'];
+    el('prTopList').innerHTML=ranked.slice(0,3).map((r,i)=>'<div class="pt-item '+(i===0?'best':'')+'">'+'<span class="pt-nm">'+medals[i]+' '+r.key+' · '+r.pif.name+'</span><span class="pt-y">'+r.cagr.toFixed(2)+'%</span></div>').join('');
+
+    el('bY').textContent=bCAGR.toFixed(2)+'%'; el('pY').textContent=pCAGR.toFixed(2)+'%';
+    el('bF').textContent='≈ '+fR(bFin)+' за '+years+' лет'; el('pF').textContent='≈ '+fR(pFin)+' за '+years+' лет';
+    el('bS').textContent=bDesc; el('pS').textContent=pDesc; el('bkd').innerHTML=taxHtml; el('iisBox').style.display='none';
+    const dv=pFin-bFin,vEl=el('vd');
+    if(Math.abs(dv)<amt*0.01){vEl.className='vd vd-e';vEl.innerHTML='⚖️ Результаты практически одинаковы (разница <1%).';}
+    else if(dv>0){vEl.className='vd vd-p';vEl.innerHTML='✅ <b>ПИФ выгоднее</b> на <b>'+fR(dv)+'</b> (+'+((pFin/bFin-1)*100).toFixed(1)+'%) за '+years+' лет';}
+    else{vEl.className='vd vd-b';vEl.innerHTML='📊 <b>Портфель облигаций выгоднее</b> на <b>'+fR(Math.abs(dv))+'</b> за '+years+' лет';}
+
+    renderChart(amt,simpR,clsR,cpnR,discR,pifR,years,pif,null,0);
+  }
+}
+
+function renderChart(amt,simpR,clsR,cpnR,discR,pifR,years,pif,iFin,tax) {
+  const isPhys=TAB==='phys';
+  const lt=isPhys?'':el('legalType').value;
+  const cpnTax=0.20, gainTax=lt==='npf'?0.20:0.25;
+  const noNetR=simpR*(1-tax), yesNetR=clsR*(1-tax);
+  const labels=[],bVs=[],pVs=[],iVs=[];
+  for(let t=0;t<=Math.ceil(years);t+=0.5){
+    labels.push(t.toFixed(1));
+    let bv,pv;
+    if(isPhys){
+      bv=MODE==='yes'?amt*Math.pow(1+yesNetR,t):amt*Math.pow(1+noNetR,t);
+      pv=pifVal(amt,pifR,tax,t);
+      if(MODE==='iis3'){const g=amt*Math.pow(1+clsR,t),pr=g-amt,tx=pr>3e7?(pr-3e7)*tax:0;iVs.push(g-tx);}
+    }else{
+      const nr=cpnR*(1-cpnTax)+Math.max(0,discR)*(1-gainTax);
+      bv=amt*Math.pow(1+nr,t);
+      pv=amt*Math.pow(1+pifR,t);
+    }
+    bVs.push(bv);pVs.push(pv);
+  }
+  const ds=[
+    {label:'Облигации (после налогов)',data:bVs,borderColor:'#1a56db',backgroundColor:'rgba(26,86,219,.05)',borderWidth:2.5,tension:.35,fill:true,pointRadius:0},
+    {label:'ПИФ '+pif.name+' (NAV)',data:pVs,borderColor:'#16a34a',backgroundColor:'rgba(22,163,74,.05)',borderWidth:2.5,tension:.35,fill:true,pointRadius:0},
+  ];
+  if(iVs.length) ds.push({label:'ИИС-3 (0% НДФЛ)',data:iVs,borderColor:'#7c3aed',borderDash:[5,4],borderWidth:2,tension:.35,fill:false,pointRadius:0});
+  const ctx=el('chart').getContext('2d');
+  if(CHART) CHART.destroy();
+  CHART=new Chart(ctx,{type:'line',data:{labels,datasets:ds},options:{responsive:true,
+    plugins:{legend:{position:'bottom',labels:{font:{family:'Golos Text, sans-serif',size:11},boxWidth:20}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fR(c.raw)}}},
+    scales:{x:{title:{display:true,text:'Годы',font:{size:11}}},y:{title:{display:true,text:'Сумма, ₽',font:{size:11}},ticks:{callback:v=>fRS(v)}}}}});
+}
+
+function renderTaxInfo() {
+  el('taxInfo').innerHTML=TAB==='phys'
+    ?'<b>Физическое лицо:</b><br>'
+    +'· НДФЛ на инвест. доход: <b>13%</b> (до 2,4 млн ₽) / <b>15%</b> (свыше 2,4 млн ₽) — ст.214.1 НК РФ<br>'
+    +'· Инвест. база <b>отдельна</b> от трудовой дохода — зарплата не влияет на ставку<br>'
+    +'· ЛДВ — <b>только на прирост цены</b> бумаги/пая, не на купоны — ст.219.1 НК РФ<br>'
+    +'· Размер ЛДВ: 3 млн ₽ × полных лет (минимум 3 года)<br>'
+    +'· ИИС-3 (с 2026): минимум 6 лет, <b>0% НДФЛ до 30 млн ₽</b> — ст.219.2 НК РФ<br>'
+    +'· БПИФ: купоны реинвестируются <b>без НДФЛ</b> → НДФЛ при продаже пая (на весь прирост)'
+    :'<b>Юридическое лицо:</b><br>'
+    +'· Купоны рублёвых облигаций с 2025: <b>20%</b> — пп.1 п.4 ст.284 НК РФ; ФЗ №362-ФЗ от 29.10.2024<br>'
+    +'· Прирост цены при погашении: <b>25%</b> (ООО, страховые) / <b>20%</b> (НПФ) — п.1 ст.284 НК РФ<br>'
+    +'· ПИФ: купоны реинвестируются без налога внутри — пп.1,5 ст.276 НК РФ<br>'
+    +'· Налог при погашении пая: <b>0%</b> если >3 лет, иначе 25%/20%<br>'
+    +'· УК <b>не является</b> налоговым агентом — юрлицо платит самостоятельно';
+}
+
+function el(id){return document.getElementById(id);}
+function fR(v){return new Intl.NumberFormat('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:0}).format(v);}
+function fRS(v){if(v>=1e6)return(v/1e6).toFixed(1)+' М';if(v>=1e3)return(v/1e3).toFixed(0)+' К';return v.toFixed(0);}
+function fN(v){if(!v&&v!==0)return'';return Math.round(v).toLocaleString('ru-RU');}
+
+// ── Event listeners ─────────────────────────────────────────────────────────
+// Person type tabs
+document.querySelectorAll('.tab-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    TAB = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.toggle('active', b===btn); });
+    el('physP').style.display = TAB==='phys'?'block':'none';
+    el('legalP').style.display = TAB==='legal'?'block':'none';
+    renderTaxInfo();
+  });
+});
+
+// Tax rate toggle (13% / 15%)
+document.querySelectorAll('.rate-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    TAX = parseFloat(btn.dataset.rate);
+    document.querySelectorAll('.rate-btn').forEach(function(b) { b.classList.toggle('active', b===btn); });
+  });
+});
+
+// Investment mode buttons
+document.querySelectorAll('.mode-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    MODE = btn.dataset.mode;
+    document.querySelectorAll('.mode-btn').forEach(function(b) { b.classList.toggle('active', b===btn); });
+    el('iisNote').style.display = MODE==='iis3'?'block':'none';
+    if (MODE==='iis3') {
+      var yr = el('years');
+      if (parseFloat(yr.value) < 6) { yr.value=6; el('yearsVal').textContent='6.0 лет'; }
+    }
+  });
+});
+
+// Years slider
+el('years').addEventListener('input', function(e) {
+  var v = parseFloat(e.target.value);
+  if (MODE==='iis3' && v<6) { v=6; e.target.value=6; }
+  el('yearsVal').textContent = v.toFixed(1)+' лет';
+});
+
+// Calculate button
+el('calcBtn').addEventListener('click', calculate);
+
+// Init
+renderPort();
+renderTaxInfo();
+</script>
+</body>
+</html>
